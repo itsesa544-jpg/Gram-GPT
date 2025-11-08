@@ -2,22 +2,13 @@ import React from 'react';
 import { GramGptLogo, HistoryIcon, ImageIcon } from './components/IconComponents';
 
 const App: React.FC = () => {
-  const appContainerStyle: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100vh',
-    padding: '1rem',
-  };
-
   const chatWindowStyle: React.CSSProperties = {
     width: '100%',
+    height: '100%',
     maxWidth: '800px',
-    height: '90vh',
-    maxHeight: '1000px',
+    margin: '0 auto',
     backgroundColor: '#ffffff',
-    borderRadius: '12px',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+    boxShadow: '0 0 15px rgba(0, 0, 0, 0.1)',
     display: 'flex',
     flexDirection: 'column',
     overflow: 'hidden',
@@ -126,43 +117,41 @@ const App: React.FC = () => {
   };
 
   return (
-    <div style={appContainerStyle}>
-      <div style={chatWindowStyle}>
-        <header style={headerStyle}>
-          <GramGptLogo />
-          <div style={titleContainerStyle}>
-            <h1 style={mainTitleStyle}>Gram GPT</h1>
-            <p style={subtitleStyle}>গ্রাম জিপিটি - আপনার গ্রামীণ বন্ধু</p>
-          </div>
-          <button style={historyButtonStyle} aria-label="View History">
-            <HistoryIcon />
-          </button>
-        </header>
+    <div style={chatWindowStyle}>
+      <header style={headerStyle}>
+        <GramGptLogo />
+        <div style={titleContainerStyle}>
+          <h1 style={mainTitleStyle}>Gram GPT</h1>
+          <p style={subtitleStyle}>গ্রাম জিপিটি - আপনার গ্রামীণ বন্ধু</p>
+        </div>
+        <button style={historyButtonStyle} aria-label="View History">
+          <HistoryIcon />
+        </button>
+      </header>
 
-        <main style={chatBodyStyle}>
-          {/* Chat messages will appear here */}
-        </main>
+      <main style={chatBodyStyle}>
+        {/* Chat messages will appear here */}
+      </main>
 
-        <footer style={inputAreaContainerStyle}>
-          <div style={inputWrapperStyle}>
-            <textarea
-              style={textareaStyle}
-              placeholder="গ্রামের গল্প, আবহাওয়ার খবর জানতে চান, বা কোনো ছবি আঁকতে বলুন..."
-              rows={3}
-            />
-             <p style={exampleTextStyle}>উদাহরণ: 'ধান গাছে বাদামী দাগ পড়েছে, কী করব?' অথবা 'বর্ষার বিকেলে একটি গ্রামের দৃশ্য আঁকো।'</p>
-          </div>
-          <div style={buttonContainerStyle}>
-             <button style={addImageButtonStyle}>
-                <ImageIcon />
-                <span>ছবি যোগ করুন</span>
-             </button>
-             <button style={submitButtonStyle}>
-                উত্তর খুঁজুন
-             </button>
-          </div>
-        </footer>
-      </div>
+      <footer style={inputAreaContainerStyle}>
+        <div style={inputWrapperStyle}>
+          <textarea
+            style={textareaStyle}
+            placeholder="গ্রামের গল্প, আবহাওয়ার খবর জানতে চান, বা কোনো ছবি আঁকতে বলুন..."
+            rows={3}
+          />
+           <p style={exampleTextStyle}>উদাহরণ: 'ধান গাছে বাদামী দাগ পড়েছে, কী করব?' অথবা 'বর্ষার বিকেলে একটি গ্রামের দৃশ্য আঁকো।'</p>
+        </div>
+        <div style={buttonContainerStyle}>
+           <button style={addImageButtonStyle}>
+              <ImageIcon />
+              <span>ছবি যোগ করুন</span>
+           </button>
+           <button style={submitButtonStyle}>
+              উত্তর খুঁজুন
+           </button>
+        </div>
+      </footer>
     </div>
   );
 };

@@ -8,10 +8,15 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-      body {
+      *, *::before, *::after {
+        box-sizing: border-box;
+      }
+      html, body, #root {
+        height: 100%;
         margin: 0;
         padding: 0;
-        box-sizing: border-box;
+      }
+      body {
         font-family: 'Hind Siliguri', sans-serif;
         background-color: #f0f4f9;
       }
