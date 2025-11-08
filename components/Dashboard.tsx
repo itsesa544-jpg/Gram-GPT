@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GoogleGenAI, Modality, FunctionDeclaration, Type } from '@google/genai';
 import { HistoryIcon, GeminiIcon, ImageIcon, XCircleIcon, MicrophoneIcon, SunIcon, MoonIcon, DownloadIcon } from './IconComponents';
 import HistoryPage from './HistoryPage';
@@ -15,9 +15,6 @@ interface HistoryItem {
 }
 
 type Theme = 'light' | 'dark';
-
-const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-const isSpeechRecognitionSupported = !!SpeechRecognition;
 
 // Mock function to simulate a weather API call
 const getWeather = (location: string) => {
@@ -56,6 +53,7 @@ const Dashboard: React.FC = () => {
   const [currentView, setCurrentView] = useState<'generate' | 'history'>('generate');
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [theme, setTheme] = useState<Theme>('light');
+  const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<any>(null);
 
@@ -67,6 +65,9 @@ const Dashboard: React.FC = () => {
     } else if (systemPrefersDark) {
       setTheme('dark');
     }
+
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    setIsSpeechRecognitionSupported(!!SpeechRecognitionAPI);
   }, []);
 
   useEffect(() => {
@@ -114,7 +115,8 @@ const Dashboard: React.FC = () => {
   };
 
   const handleToggleListening = () => {
-    if (!isSpeechRecognitionSupported) {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
       setError("দুঃখিত, আপনার ব্রাউজার ভয়েস রিকগনিশন সমর্থন করে না।");
       return;
     }
