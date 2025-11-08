@@ -1,10 +1,25 @@
 import React from 'react';
-import Dashboard from './components/Dashboard';
 
 const App: React.FC = () => {
+  const appStyle: React.CSSProperties = {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100vh',
+    backgroundColor: '#282c34',
+    color: 'white',
+    textAlign: 'center',
+    fontFamily: 'Arial, sans-serif',
+  };
+
+  const headingStyle: React.CSSProperties = {
+    fontSize: '5rem',
+    fontWeight: 'bold',
+  };
+
   return (
-    <div className="min-h-screen">
-      <Dashboard />
+    <div style={appStyle}>
+      <h1 style={headingStyle}>Welcome to Gram GPT!</h1>
     </div>
   );
 };
