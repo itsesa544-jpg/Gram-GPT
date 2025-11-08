@@ -66,10 +66,10 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ history, onBack, onDeleteItem
     <div className="p-0 sm:p-2 md:p-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <div className="flex items-center">
-            <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 mr-2 sm:mr-4" aria-label="Go back">
+            <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100 mr-2 sm:mr-4" aria-label="Go back">
             <ArrowLeftIcon />
             </button>
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white">আপনার কথোপকথনের ইতিহাস</h2>
+            <h2 className="text-2xl font-bold text-gray-800">আপনার কথোপকথনের ইতিহাস</h2>
         </div>
         {history.length > 0 && (
              <button
@@ -85,21 +85,21 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ history, onBack, onDeleteItem
 
       {history.length === 0 ? (
         <div className="text-center py-10">
-          <p className="text-gray-500 dark:text-gray-400">আপনার এখনো কোনো ইতিহাস নেই।</p>
+          <p className="text-gray-500">আপনার এখনো কোনো ইতিহাস নেই।</p>
         </div>
       ) : (
         <div className="space-y-6">
           {history.map((item, index) => (
-            <div id={`history-item-${index}`} key={index} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
+            <div id={`history-item-${index}`} key={index} className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                   <div className="flex-grow">
-                      <h3 className="text-lg font-semibold text-green-700 dark:text-green-400 mb-2">আপনার প্রশ্ন:</h3>
-                      <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{item.prompt}</p>
+                      <h3 className="text-lg font-semibold text-green-700 mb-2">আপনার প্রশ্ন:</h3>
+                      <p className="text-gray-700 whitespace-pre-wrap">{item.prompt}</p>
                   </div>
                   <div className="flex items-center space-x-2 flex-shrink-0 self-end sm:self-auto">
                     <button
                         onClick={() => handleDownloadPDF(index)}
-                        className="flex items-center space-x-2 px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
+                        className="flex items-center space-x-2 px-3 py-1.5 border border-gray-300 text-gray-700 font-semibold rounded-md hover:bg-gray-50 disabled:opacity-50"
                         disabled={downloading === index}
                         aria-label="Download as PDF"
                         >
@@ -114,7 +114,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ history, onBack, onDeleteItem
                     </button>
                     <button
                         onClick={() => onDeleteItem(index)}
-                        className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-500 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
+                        className="p-2 text-gray-500 hover:text-red-600 rounded-full hover:bg-gray-100"
                         aria-label="Delete item"
                         title="এই আইটেমটি মুছুন"
                         >
@@ -125,12 +125,12 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ history, onBack, onDeleteItem
 
                {item.image && (
                 <div className="mt-4">
-                    <h4 className="text-md font-semibold text-gray-600 dark:text-gray-400 mb-2">আপনার দেওয়া ছবি:</h4>
+                    <h4 className="text-md font-semibold text-gray-600 mb-2">আপনার দেওয়া ছবি:</h4>
                     <div className="relative inline-block">
                         <img src={item.image} alt="User uploaded context" className="rounded-lg max-w-xs w-full shadow" />
                          <button
                             onClick={() => handleDownloadSingleImage(item.image!, index)}
-                            className="absolute top-2 right-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 shadow"
+                            className="absolute top-2 right-2 bg-white text-gray-700 p-2 rounded-full hover:bg-gray-100 shadow"
                             aria-label="Download your uploaded image"
                             title="আপনার ছবিটি ডাউনলোড করুন"
                         >
@@ -140,16 +140,16 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ history, onBack, onDeleteItem
                 </div>
               )}
 
-              <hr className="my-4 border-gray-200 dark:border-gray-700" />
+              <hr className="my-4 border-gray-200" />
 
               <div>
-                <h3 className="text-lg font-semibold text-blue-700 dark:text-blue-400 mb-2">গ্রাম জিপিটি-র উত্তর:</h3>
+                <h3 className="text-lg font-semibold text-blue-700 mb-2">গ্রাম জিপিটি-র উত্তর:</h3>
                  {item.response.generatedImage && (
                     <div className="relative mb-4">
                         <img src={item.response.generatedImage} alt="Generated content" className="rounded-lg w-full max-w-md shadow-lg" />
                          <button
                             onClick={() => handleDownloadSingleImage(item.response.generatedImage!, index)}
-                            className="absolute top-2 right-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 shadow"
+                            className="absolute top-2 right-2 bg-white text-gray-700 p-2 rounded-full hover:bg-gray-100 shadow"
                             aria-label="Download image"
                             title="ছবিটি ডাউনলোড করুন"
                         >
@@ -158,7 +158,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ history, onBack, onDeleteItem
                     </div>
                 )}
                 <div 
-                    className="prose dark:prose-invert max-w-none whitespace-pre-wrap"
+                    className="prose max-w-none whitespace-pre-wrap"
                     dangerouslySetInnerHTML={{ __html: marked.parse(item.response.text) }}
                  />
               </div>

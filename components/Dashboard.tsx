@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GoogleGenAI, Modality, FunctionDeclaration, Type } from '@google/genai';
-import { HistoryIcon, GeminiIcon, ImageIcon, XCircleIcon, SunIcon, MoonIcon, DownloadIcon } from './IconComponents';
+import { HistoryIcon, GeminiIcon, ImageIcon, XCircleIcon, DownloadIcon } from './IconComponents';
 import HistoryPage from './HistoryPage';
 
 declare const marked: any;
@@ -13,8 +13,6 @@ interface HistoryItem {
   };
   image?: string; // User-uploaded image
 }
-
-type Theme = 'light' | 'dark';
 
 // Mock function to simulate a weather API call
 const getWeather = (location: string) => {
@@ -51,36 +49,15 @@ const Dashboard: React.FC = () => {
   const [error, setError] = useState('');
   const [currentView, setCurrentView] = useState<'generate' | 'history'>('generate');
   const [history, setHistory] = useState<HistoryItem[]>([]);
-  const [theme, setTheme] = useState<Theme>('light');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') as Theme;
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (savedTheme) {
-      setTheme(savedTheme);
-    } else if (systemPrefersDark) {
-      setTheme('dark');
-    }
-  }, []);
-
-  useEffect(() => {
     const body = document.body;
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-      body.classList.add('bg-gray-900');
-      body.classList.remove('bg-[#F8FBF8]');
-    } else {
-      document.documentElement.classList.remove('dark');
-      body.classList.add('bg-[#F8FBF8]');
-      body.classList.remove('bg-gray-900');
-    }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  const handleThemeSwitch = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
+    body.classList.add('bg-[#F8FBF8]');
+    return () => {
+        body.classList.remove('bg-[#F8FBF8]');
+    };
+  }, []);
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -259,11 +236,11 @@ Copyright © IM Softwark`,
 
   const renderContentGenerator = () => (
     <div>
-      <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">গ্রাম জিপিটি - আপনার গ্রামীণ বন্ধু</h2>
+      <h2 className="text-2xl font-bold mb-6 text-gray-800">গ্রাম জিপিটি - আপনার গ্রামীণ বন্ধু</h2>
       
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
+      <div className="bg-white p-6 rounded-lg shadow-md">
         <textarea
-          className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white dark:placeholder-gray-400 font-bold"
+          className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-gray-900 font-bold"
           rows={5}
           placeholder="গ্রামের গল্প, আবহাওয়ার খবর জানতে চান, বা কোনো ছবি আঁকতে বলুন..."
           value={prompt}
@@ -285,7 +262,7 @@ Copyright © IM Softwark`,
                 <img src={image.dataUrl} alt="Preview" className="rounded-lg object-cover w-full h-full"/>
                 <button
                     onClick={handleRemoveImage}
-                    className="absolute -top-2 -right-2 bg-white dark:bg-gray-700 rounded-full text-gray-600 dark:text-gray-300 hover:text-red-500 dark:hover:text-red-400"
+                    className="absolute -top-2 -right-2 bg-white rounded-full text-gray-600 hover:text-red-500"
                     aria-label="Remove image"
                     disabled={isLoading}
                 >
@@ -294,13 +271,13 @@ Copyright © IM Softwark`,
             </div>
         )}
 
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+        <p className="text-sm text-gray-500 mt-2">
           উদাহরণ: 'ধান গাছে বাদামী দাগ পড়েছে, কী করব?' অথবা 'বর্ষার বিকেলে একটি গ্রামের দৃশ্য আঁকো।'
         </p>
         <div className="mt-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="w-full sm:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+            className="w-full sm:w-auto px-4 py-2 border border-gray-300 text-gray-700 font-semibold rounded-md hover:bg-gray-50 disabled:opacity-50 flex items-center justify-center space-x-2"
             disabled={isLoading}
             aria-label="Upload an image"
           >
@@ -319,20 +296,20 @@ Copyright © IM Softwark`,
       </div>
 
       {error && (
-        <div className="mt-6 bg-red-100 dark:bg-red-900/20 border border-red-400 dark:border-red-500/50 text-red-700 dark:text-red-300 px-4 py-3 rounded-md" role="alert">
+        <div className="mt-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-md" role="alert">
           <p>{error}</p>
         </div>
       )}
 
       {generatedContent && (
-        <div className="mt-6 bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-          <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">ফলাফল</h3>
+        <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
+          <h3 className="text-xl font-semibold mb-4 text-gray-800">ফলাফল</h3>
            {generatedContent.generatedImage && (
             <div className="relative mb-4">
               <img src={generatedContent.generatedImage} alt="Generated content" className="rounded-lg w-full max-w-md shadow-lg" />
               <button
                 onClick={() => handleDownloadImage(generatedContent.generatedImage!)}
-                className="absolute top-2 right-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 shadow"
+                className="absolute top-2 right-2 bg-white text-gray-700 p-2 rounded-full hover:bg-gray-100 shadow"
                 aria-label="Download image"
                 title="ছবিটি ডাউনলোড করুন"
               >
@@ -341,7 +318,7 @@ Copyright © IM Softwark`,
             </div>
           )}
           <div 
-            className="prose dark:prose-invert max-w-none whitespace-pre-wrap"
+            className="prose max-w-none whitespace-pre-wrap"
             dangerouslySetInnerHTML={{ __html: marked.parse(generatedContent.text) }}
           />
         </div>
@@ -350,8 +327,8 @@ Copyright © IM Softwark`,
   );
 
   return (
-    <div className="flex flex-col h-screen text-gray-800 dark:text-gray-200">
-      <header className="flex items-center justify-between p-4 bg-white dark:bg-gray-800 border-b dark:border-gray-700">
+    <div className="flex flex-col h-screen text-gray-800">
+      <header className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
         <div 
           className="flex items-center space-x-4 cursor-pointer" 
           onClick={navigateToGenerator}
@@ -359,22 +336,15 @@ Copyright © IM Softwark`,
           aria-label="Go to content generator"
         >
           <GeminiIcon />
-          <h1 className="text-xl font-semibold text-gray-900 dark:text-white">Gram GPT</h1>
+          <h1 className="text-xl font-semibold text-gray-900">Gram GPT</h1>
         </div>
         <div className="flex items-center space-x-2">
           <button 
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700" 
+            className="p-2 rounded-full hover:bg-gray-100" 
             aria-label="History"
             onClick={() => setCurrentView('history')}
           >
             <HistoryIcon />
-          </button>
-          <button
-            onClick={handleThemeSwitch}
-            className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-            aria-label="Switch theme"
-          >
-            {theme === 'light' ? <MoonIcon /> : <SunIcon />}
           </button>
         </div>
       </header>
