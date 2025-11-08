@@ -63,10 +63,10 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ history, onBack, onDeleteItem
 
 
   return (
-    <div className="p-4 sm:p-6 md:p-8">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-0 sm:p-2 md:p-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
         <div className="flex items-center">
-            <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 mr-4" aria-label="Go back">
+            <button onClick={onBack} className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 mr-2 sm:mr-4" aria-label="Go back">
             <ArrowLeftIcon />
             </button>
             <h2 className="text-2xl font-bold text-gray-800 dark:text-white">আপনার কথোপকথনের ইতিহাস</h2>
@@ -74,7 +74,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ history, onBack, onDeleteItem
         {history.length > 0 && (
              <button
                 onClick={onClearAll}
-                className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 disabled:opacity-50"
+                className="flex items-center space-x-2 px-4 py-2 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 disabled:opacity-50 self-end sm:self-auto"
                 aria-label="Clear all history"
                 >
                 <TrashIcon />
@@ -91,12 +91,12 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ history, onBack, onDeleteItem
         <div className="space-y-6">
           {history.map((item, index) => (
             <div id={`history-item-${index}`} key={index} className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
-              <div className="flex justify-between items-start">
-                  <div>
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                  <div className="flex-grow">
                       <h3 className="text-lg font-semibold text-green-700 dark:text-green-400 mb-2">আপনার প্রশ্ন:</h3>
                       <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{item.prompt}</p>
                   </div>
-                  <div className="flex items-center space-x-2 flex-shrink-0 ml-4">
+                  <div className="flex items-center space-x-2 flex-shrink-0 self-end sm:self-auto">
                     <button
                         onClick={() => handleDownloadPDF(index)}
                         className="flex items-center space-x-2 px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"

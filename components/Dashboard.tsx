@@ -143,8 +143,9 @@ const Dashboard: React.FC = () => {
       let response = await ai.models.generateContent({
         model,
         contents: { parts },
-        tools: [{ functionDeclarations: [getWeatherFunctionDeclaration] }],
+        // FIX: Moved `tools` inside the `config` object as per Gemini API guidelines.
         config: {
+          tools: [{ functionDeclarations: [getWeatherFunctionDeclaration] }],
           responseModalities: shouldGenerateImage ? [Modality.IMAGE] : [],
           systemInstruction: `You are 'Gram GPT,' a helpful AI assistant for people in the villages of Bangladesh. Your goal is to provide useful information and creative content. Answer all questions in clear, simple Bengali. Your capabilities include:
 1. Answering questions on agriculture, weather, local stories, and general knowledge.
@@ -167,6 +168,12 @@ IM Softworks একটি উদীয়মান সফটওয়্যার ক�
 Hello, I am Mohammad Esa Ali, a passionate and creative tech enthusiast.
 
 ---
+
+### 📜 Source
+**Branch:** main
+**Last Update:** Refactored components and improved UI responsiveness.
+
+---
 **Contact us**
 im.softwark.team@gmail.com
 Copyright © IM Softwark`,
@@ -176,7 +183,8 @@ Copyright © IM Softwark`,
       if (response.functionCalls) {
         const fc = response.functionCalls[0];
         if (fc.name === 'getWeather') {
-            const weatherResult = getWeather(fc.args.location);
+            // FIX: Cast `fc.args.location` to string as it is of type `unknown`.
+            const weatherResult = getWeather(fc.args.location as string);
             
             response = await ai.models.generateContent({
                 model,
@@ -289,10 +297,10 @@ Copyright © IM Softwark`,
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
           উদাহরণ: 'ধান গাছে বাদামী দাগ পড়েছে, কী করব?' অথবা 'বর্ষার বিকেলে একটি গ্রামের দৃশ্য আঁকো।'
         </p>
-        <div className="mt-4 flex justify-between items-center">
+        <div className="mt-4 flex flex-col sm:flex-row gap-4 justify-between items-center">
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 flex items-center space-x-2"
+            className="w-full sm:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-semibold rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 flex items-center justify-center space-x-2"
             disabled={isLoading}
             aria-label="Upload an image"
           >
@@ -302,7 +310,7 @@ Copyright © IM Softwark`,
           
           <button
             onClick={handleGenerate}
-            className="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 disabled:bg-green-300"
+            className="w-full sm:w-auto px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 disabled:bg-green-300"
             disabled={isLoading}
           >
             {isLoading ? 'অনুসন্ধান চলছে...' : 'উত্তর খুঁজুন'}
@@ -371,7 +379,7 @@ Copyright © IM Softwark`,
         </div>
       </header>
       
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
         {currentView === 'generate' ? renderContentGenerator() : <HistoryPage history={history} onBack={navigateToGenerator} onDeleteItem={handleDeleteItem} onClearAll={handleClearAllHistory} />}
       </main>
     </div>
