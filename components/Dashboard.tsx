@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { GoogleGenAI, Modality, FunctionDeclaration, Type } from '@google/genai';
-import { HistoryIcon, GeminiIcon, ImageIcon, XCircleIcon, MicrophoneIcon, SunIcon, MoonIcon, DownloadIcon } from './IconComponents';
+import { HistoryIcon, GeminiIcon, ImageIcon, XCircleIcon, SunIcon, MoonIcon, DownloadIcon } from './IconComponents';
 import HistoryPage from './HistoryPage';
 
 declare const marked: any;
@@ -48,14 +48,11 @@ const Dashboard: React.FC = () => {
   const [image, setImage] = useState<{ file: File; dataUrl: string } | null>(null);
   const [generatedContent, setGeneratedContent] = useState<{ text: string; generatedImage?: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
   const [error, setError] = useState('');
   const [currentView, setCurrentView] = useState<'generate' | 'history'>('generate');
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [theme, setTheme] = useState<Theme>('light');
-  const [isSpeechRecognitionSupported, setIsSpeechRecognitionSupported] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme') as Theme;
@@ -65,9 +62,6 @@ const Dashboard: React.FC = () => {
     } else if (systemPrefersDark) {
       setTheme('dark');
     }
-
-    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    setIsSpeechRecognitionSupported(!!SpeechRecognitionAPI);
   }, []);
 
   useEffect(() => {
@@ -83,14 +77,6 @@ const Dashboard: React.FC = () => {
     }
     localStorage.setItem('theme', theme);
   }, [theme]);
-
-  useEffect(() => {
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, []);
 
   const handleThemeSwitch = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -111,42 +97,6 @@ const Dashboard: React.FC = () => {
     setImage(null);
     if(fileInputRef.current) {
         fileInputRef.current.value = '';
-    }
-  };
-
-  const handleToggleListening = () => {
-    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      setError("দুঃখিত, আপনার ব্রাউজার ভয়েস রিকগনিশন সমর্থন করে না।");
-      return;
-    }
-
-    if (isListening) {
-      recognitionRef.current?.stop();
-      setIsListening(false);
-    } else {
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'bn-BD';
-      recognition.interimResults = false;
-      recognition.continuous = false;
-
-      recognition.onstart = () => setIsListening(true);
-      recognition.onend = () => setIsListening(false);
-      recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
-        setError(`ভয়েস রিকগনিশনে একটি সমস্যা হয়েছে: ${event.error}`);
-        setIsListening(false);
-      };
-      
-      recognition.onresult = (event: any) => {
-        const transcript = event.results[event.results.length - 1][0].transcript.trim();
-        if (transcript) {
-          setPrompt(prevPrompt => prevPrompt ? `${prevPrompt} ${transcript}` : transcript);
-        }
-      };
-
-      recognitionRef.current = recognition;
-      recognition.start();
     }
   };
 
@@ -350,17 +300,6 @@ Copyright © IM Softwark`,
             <span>ছবি যোগ করুন</span>
           </button>
           
-          <button
-            onClick={handleToggleListening}
-            className={`p-3 rounded-full text-white transition-colors ${
-              isListening ? 'bg-red-500 animate-pulse' : 'bg-green-600 hover:bg-green-700'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-            disabled={!isSpeechRecognitionSupported || isLoading}
-            aria-label={isListening ? 'কথা বলা বন্ধ করুন' : 'কথা বলুন'}
-          >
-            <MicrophoneIcon />
-          </button>
-
           <button
             onClick={handleGenerate}
             className="px-6 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 disabled:bg-green-300"
