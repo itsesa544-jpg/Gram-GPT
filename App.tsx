@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, GenerateContentResponse, Modality } from "@google/genai";
 import { GramGptLogo, DownloadIcon, SendIcon, PaperclipIcon, CloseIcon } from './components/IconComponents';
@@ -49,7 +50,6 @@ const App: React.FC = () => {
     setPrompt(suggestionText);
     // Use a timeout to ensure the state update is processed before submitting
     setTimeout(() => {
-      // FIX: Cast HTMLElement to HTMLFormElement to access requestSubmit.
       (document.getElementById('chat-form') as HTMLFormElement)?.requestSubmit();
     }, 0);
   };
@@ -87,8 +87,6 @@ const App: React.FC = () => {
     if(fileInputRef.current) fileInputRef.current.value = '';
 
     try {
-        // FIX: Dynamically select model and config for text or image generation.
-        // This allows the app to handle image generation prompts correctly.
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         
         // Keywords for image generation in Bengali: আঁকো (draw), ছবি (picture).
@@ -96,23 +94,24 @@ const App: React.FC = () => {
         
         let model: string;
         const config: any = {};
+        let contents: any;
+        
+        const mappedParts = userParts.map(part => {
+            if (part.inlineData) {
+                return { inlineData: part.inlineData };
+            }
+            return { text: part.text || '' };
+        });
 
         if (isImageGenerationRequest) {
             model = 'gemini-2.5-flash-image';
             config.responseModalities = [Modality.IMAGE];
+            contents = { parts: mappedParts };
         } else {
             model = 'gemini-2.5-flash';
             config.systemInstruction = 'তুমি গ্রাম জিপিটি, গ্রামের মানুষের একজন বন্ধু ও সহায়ক। তোমার কাজ হলো কৃষি, আবহাওয়া, গ্রামের গল্প, গান এবং দৈনন্দিন জীবনের নানা বিষয়ে সহজ ভাষায় তথ্য ও পরামর্শ দেওয়া। প্রয়োজনে ছবি তৈরি করে বা বিশ্লেষণ করে সাহায্য করা।';
+            contents = { parts: mappedParts };
         }
-
-        const contents = {
-          parts: userParts.map(part => {
-              if (part.inlineData) {
-                  return { inlineData: part.inlineData };
-              }
-              return { text: part.text || '' };
-          })
-        };
 
         const response: GenerateContentResponse = await ai.models.generateContent({
             model: model,
@@ -194,14 +193,14 @@ const App: React.FC = () => {
     <div style={appContainerStyle}>
       <header style={headerStyle}>
         <GramGptLogo />
-        <h1 style={titleStyle}>গ্রাম জিপিটি</h1>
+        <h1 style={titleStyle}>গ্রামজিপিটি</h1>
       </header>
 
       <main style={mainContentStyle}>
         {messages.length === 0 && !loading ? (
           <div style={welcomeContainerStyle}>
-            <h2 style={welcomeTitleStyle}>গ্রাম জিপিটি-তে স্বাগতম!</h2>
-            <p style={welcomeSubtitleStyle}>আপনার যা জানতে ইচ্ছে করে, জিজ্ঞেস করুন। আমি আছি আপনার সাহায্যে।</p>
+            <h2 style={welcomeTitleStyle}>গ্রামজিপিটি</h2>
+            <p style={welcomeSubtitleStyle}>আপনার গ্রামীণ বন্ধু।</p>
             <div style={suggestionGridStyle}>
               {suggestions.map((text, index) => (
                 <button key={index} style={suggestionButtonStyle} onClick={() => handleSuggestionClick(text)}>{text}</button>
