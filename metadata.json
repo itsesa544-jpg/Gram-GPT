@@ -1,4 +1,5 @@
 {
   "name": "Gram GPT",
-  "description": "An AI assistant for agricultural advice."
+  "description": "গ্রামের মানুষের জন্য একটি সহায়ক, যা কথা বলতে, গল্প শোনাতে এবং ছবি বিশ্লেষণ ও তৈরি করতে পারে।",
+  "requestFramePermissions": []
 }

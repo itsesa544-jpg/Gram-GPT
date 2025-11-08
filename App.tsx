@@ -1,257 +1,276 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { GoogleGenAI, GenerateContentResponse, Part, Modality } from "@google/genai";
-import { GramGptLogo, HistoryIcon, ImageIcon, DownloadIcon, SendIcon } from './components/IconComponents';
+import { GoogleGenAI, GenerateContentResponse, Modality } from "@google/genai";
+import { GramGptLogo, DownloadIcon, SendIcon, PaperclipIcon, CloseIcon } from './components/IconComponents';
 
-type MessagePart = {
-  text?: string;
-  inlineData?: {
-    mimeType: string;
-    data: string;
-  };
-};
-
+// --- Types ---
+type InlineData = { data: string; mimeType: string; };
+type MessagePart = { text?: string; inlineData?: InlineData; };
 type Message = {
   role: 'user' | 'model';
   parts: MessagePart[];
 };
 
+// --- Helper Functions ---
+const fileToGenerativePart = async (file: File): Promise<InlineData> => {
+  const base64EncodedDataPromise = new Promise<string>((resolve) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+    reader.readAsDataURL(file);
+  });
+  return {
+    data: await base64EncodedDataPromise,
+    mimeType: file.type,
+  };
+};
+
+// --- Constants ---
+const suggestions = [
+  'আজকের আবহাওয়া কেমন?',
+  'গ্রামের একটি সুন্দর গল্প বলো',
+  'ধানক্ষেতের একটি ছবি আঁকো',
+  'ফসলের রোগ নির্ণয় করতে সাহায্য করো',
+];
+
 const App: React.FC = () => {
-  const [history, setHistory] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [prompt, setPrompt] = useState('');
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [attachedImage, setAttachedImage] = useState<File | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const chatAreaRef = useRef<HTMLDivElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (chatAreaRef.current) {
-      chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
-    }
-  }, [history, loading]);
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
 
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = (reader.result as string).split(',')[1];
-        setImageBase64(base64String);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleSuggestionClick = (suggestionText: string) => {
+    setPrompt(suggestionText);
+    // Use a timeout to ensure the state update is processed before submitting
+    setTimeout(() => {
+      // FIX: Cast HTMLElement to HTMLFormElement to access requestSubmit.
+      (document.getElementById('chat-form') as HTMLFormElement)?.requestSubmit();
+    }, 0);
   };
   
-  const handleDownload = (part: MessagePart) => {
-    if (part.text) {
-        const blob = new Blob([part.text], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'response.txt';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-    } else if (part.inlineData) {
-        const a = document.createElement('a');
-        const mimeType = part.inlineData.mimeType;
-        const extension = mimeType.split('/')[1] || 'png';
-        a.href = `data:${mimeType};base64,${part.inlineData.data}`;
-        a.download = `generated-image.${extension}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAttachedImage(file);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prompt && !selectedImage) return;
+    if (!prompt && !attachedImage) return;
 
     setLoading(true);
     setError(null);
 
-    const userMessage: Message = { role: 'user', parts: [] };
-    if (prompt) userMessage.parts.push({ text: prompt });
-    if (imageBase64 && selectedImage) {
-        userMessage.parts.push({ inlineData: { mimeType: selectedImage.type, data: imageBase64 } });
+    const userParts: MessagePart[] = [];
+    if (attachedImage) {
+      const imagePart = await fileToGenerativePart(attachedImage);
+      userParts.push({ inlineData: imagePart });
     }
-    
-    setHistory(prev => [...prev, userMessage]);
-    
-    // Clear inputs after adding to history
+    if (prompt) {
+      userParts.push({ text: prompt });
+    }
+
+    const newUserMessage: Message = { role: 'user', parts: userParts };
+    setMessages(prev => [...prev, newUserMessage]);
+
+    // Clear inputs after capturing their values
     const currentPrompt = prompt;
-    const currentSelectedImage = selectedImage;
-    const currentImageBase64 = imageBase64;
     setPrompt('');
-    setSelectedImage(null);
-    setImageBase64(null);
+    setAttachedImage(null);
+    if(fileInputRef.current) fileInputRef.current.value = '';
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      
-      const isImageGenerationRequest = /আঁকো|আঁকুন|তৈরি কর|ছবি দাও|generate|draw|create an image/i.test(currentPrompt);
+        // FIX: Dynamically select model and config for text or image generation.
+        // This allows the app to handle image generation prompts correctly.
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        
+        // Keywords for image generation in Bengali: আঁকো (draw), ছবি (picture).
+        const isImageGenerationRequest = /আঁকো|ছবি/.test(currentPrompt);
+        
+        let model: string;
+        const config: any = {};
 
-      let response: GenerateContentResponse;
-
-      if (isImageGenerationRequest && !currentSelectedImage) {
-        response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash-image',
-          contents: { parts: [{ text: currentPrompt }] },
-          config: { responseModalities: [Modality.IMAGE] },
-        });
-      } else {
-        const contents: { parts: Part[] } = { parts: [] };
-        contents.parts.push({ text: currentPrompt });
-        if (currentSelectedImage && currentImageBase64) {
-          contents.parts.push({
-            inlineData: { data: currentImageBase64, mimeType: currentSelectedImage.type },
-          });
+        if (isImageGenerationRequest) {
+            model = 'gemini-2.5-flash-image';
+            config.responseModalities = [Modality.IMAGE];
+        } else {
+            model = 'gemini-2.5-flash';
+            config.systemInstruction = 'তুমি গ্রাম জিপিটি, গ্রামের মানুষের একজন বন্ধু ও সহায়ক। তোমার কাজ হলো কৃষি, আবহাওয়া, গ্রামের গল্প, গান এবং দৈনন্দিন জীবনের নানা বিষয়ে সহজ ভাষায় তথ্য ও পরামর্শ দেওয়া। প্রয়োজনে ছবি তৈরি করে বা বিশ্লেষণ করে সাহায্য করা।';
         }
-        response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents,
+
+        const contents = {
+          parts: userParts.map(part => {
+              if (part.inlineData) {
+                  return { inlineData: part.inlineData };
+              }
+              return { text: part.text || '' };
+          })
+        };
+
+        const response: GenerateContentResponse = await ai.models.generateContent({
+            model: model,
+            contents: contents,
+            config: config,
         });
-      }
 
-      const modelResponse: Message = { role: 'model', parts: [] };
-      if (response.candidates && response.candidates.length > 0) {
-        const candidate = response.candidates[0];
-        if(candidate.content.parts) {
-            candidate.content.parts.forEach(part => {
-                if (part.text) {
-                    modelResponse.parts.push({ text: part.text });
-                } else if (part.inlineData) {
-                    modelResponse.parts.push({
-                        inlineData: {
-                            data: part.inlineData.data,
-                            mimeType: part.inlineData.mimeType,
-                        }
-                    });
-                }
-            });
+        if (response.candidates && response.candidates.length > 0 && response.candidates[0].content.parts.length > 0) {
+            const newModelMessage: Message = { role: 'model', parts: response.candidates[0].content.parts };
+            setMessages(prev => [...prev, newModelMessage]);
+        } else if (response.text) {
+            const newModelMessage: Message = { role: 'model', parts: [{ text: response.text }] };
+            setMessages(prev => [...prev, newModelMessage]);
+        } else {
+            throw new Error("কোনো উত্তর পাওয়া যায়নি।");
         }
-      } else {
-         const text = response.text;
-         if (text) {
-             modelResponse.parts.push({ text });
-         } else {
-            throw new Error("No content in response");
-         }
-      }
-
-      setHistory(prev => [...prev, modelResponse]);
     } catch (err) {
       console.error(err);
       setError('দুঃখিত, একটি সমস্যা হয়েছে। আবার চেষ্টা করুন।');
-       // Restore user message on error
-      setHistory(prev => prev.slice(0, -1));
     } finally {
       setLoading(false);
     }
   };
   
-  // Styles
-  const appContainerStyle: React.CSSProperties = { height: '100%', boxSizing: 'border-box' };
-  const chatContainerStyle: React.CSSProperties = { width: '100%', height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: 'white', overflow: 'hidden' };
-  const headerStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', padding: '1rem', borderBottom: '1px solid #e5e7eb', flexShrink: 0 };
+  const handleDownload = (part: MessagePart) => {
+    if(!part.inlineData) return;
+    const { data, mimeType } = part.inlineData;
+    const a = document.createElement('a');
+    a.href = `data:${mimeType};base64,${data}`;
+    const extension = mimeType.split('/')[1] || 'png';
+    a.download = `gram-gpt-image.${extension}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+  
+  // --- Styles ---
+  const appContainerStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f8fafc' };
+  const headerStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', padding: '1rem', borderBottom: '1px solid #e5e7eb', backgroundColor: 'white', flexShrink: 0 };
   const titleStyle: React.CSSProperties = { marginLeft: '0.75rem', fontSize: '1.25rem', fontWeight: 600, color: '#1e293b' };
-  const historyButtonStyle: React.CSSProperties = { marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#475569' };
-  const chatAreaStyle: React.CSSProperties = { flexGrow: 1, padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' };
-  const placeholderContainerStyle: React.CSSProperties = { flexGrow: 1, display: 'flex', justifyContent: 'center', alignItems: 'center'};
-  const placeholderTextStyle: React.CSSProperties = { color: '#64748b', textAlign: 'center', maxWidth: '400px' };
+  const mainContentStyle: React.CSSProperties = { flexGrow: 1, overflowY: 'auto', padding: '1.5rem' };
+  
+  const welcomeContainerStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', textAlign: 'center' };
+  const welcomeTitleStyle: React.CSSProperties = { color: '#1e293b', fontWeight: 700, fontSize: '2rem', marginBottom: '0.5rem' };
+  const welcomeSubtitleStyle: React.CSSProperties = { color: '#475569', maxWidth: '450px', marginBottom: '2.5rem', lineHeight: '1.6' };
+  const suggestionGridStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem', width: '100%', maxWidth: '600px' };
+  const suggestionButtonStyle: React.CSSProperties = { padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '12px', backgroundColor: 'white', cursor: 'pointer', textAlign: 'left', color: '#334155', fontWeight: 500, transition: 'background-color 0.2s, box-shadow 0.2s', fontSize: '0.9rem', lineHeight: '1.4' };
+  
+  const chatContainerStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '1rem' };
   const messageBubbleStyle = (role: 'user' | 'model'): React.CSSProperties => ({
     display: 'flex',
     flexDirection: 'column',
-    maxWidth: '85%',
-    alignSelf: role === 'user' ? 'flex-end' : 'flex-start',
-  });
-  const messageContentStyle = (role: 'user' | 'model'): React.CSSProperties => ({
+    gap: '0.5rem',
+    maxWidth: '80%',
     padding: '0.75rem 1rem',
-    borderRadius: '12px',
-    backgroundColor: role === 'user' ? '#22c55e' : '#f1f5f9',
+    borderRadius: '1.25rem',
+    alignSelf: role === 'user' ? 'flex-end' : 'flex-start',
+    backgroundColor: role === 'user' ? '#22c55e' : '#e2e8f0',
     color: role === 'user' ? 'white' : '#1e293b',
-    whiteSpace: 'pre-wrap',
-    wordWrap: 'break-word',
   });
-  const formStyle: React.CSSProperties = { padding: '1rem', borderTop: '1px solid #e5e7eb', backgroundColor: '#f8fafc', flexShrink: 0 };
-  const inputContainerStyle: React.CSSProperties = { display: 'flex', alignItems: 'flex-start', gap: '0.75rem' };
-  const textareaStyle: React.CSSProperties = { flexGrow: 1, padding: '0.75rem', border: '1px solid #cbd5e1', borderRadius: '8px', resize: 'none', minHeight: '44px', maxHeight: '200px', fontFamily: 'inherit', fontSize: '1rem' };
-  const submitButtonStyle: React.CSSProperties = { height: '44px', width: '44px', border: 'none', borderRadius: '8px', backgroundColor: '#22c55e', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-  const imageButtonStyle: React.CSSProperties = { height: '44px', width: '44px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: 'white', cursor: 'pointer', color: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-  const selectedImagePreviewStyle: React.CSSProperties = { fontSize: '0.875rem', color: '#475569', padding: '0.5rem', backgroundColor: '#e2e8f0', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem' };
-  const removeImageButtonStyle: React.CSSProperties = { background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold' };
+  const imageInChatStyle: React.CSSProperties = { maxWidth: '100%', height: 'auto', borderRadius: '1rem', marginTop: '0.5rem', position: 'relative' };
+  const downloadButtonStyle: React.CSSProperties = { position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0, 0, 0, 0.6)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' };
+  
+  const loadingIndicatorStyle: React.CSSProperties = { textAlign: 'center', color: '#475569', fontSize: '0.875rem' };
+  const errorStyle: React.CSSProperties = { padding: '0.75rem', backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: '8px', textAlign: 'center' };
+  
+  const footerStyle: React.CSSProperties = { padding: '1rem 1.5rem', borderTop: '1px solid #e5e7eb', backgroundColor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(8px)', flexShrink: 0 };
+  const formStyle: React.CSSProperties = { display: 'flex', gap: '0.75rem', maxWidth: '800px', margin: '0 auto', alignItems: 'center' };
+  const textareaContainerStyle: React.CSSProperties = { flexGrow: 1, position: 'relative' };
+  const textareaStyle: React.CSSProperties = { width: '100%', padding: '0.75rem 2.5rem 0.75rem 1rem', border: '1px solid #cbd5e1', borderRadius: '24px', resize: 'none', fontFamily: 'inherit', fontSize: '1rem', minHeight: '48px', boxSizing: 'border-box' };
+  const attachButtonStyle: React.CSSProperties = { position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' };
+  const submitButtonStyle: React.CSSProperties = { height: '48px', width: '48px', border: 'none', borderRadius: '50%', backgroundColor: '#22c55e', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
+  
+  const imagePreviewStyle: React.CSSProperties = { position: 'relative', display: 'inline-block', marginBottom: '0.5rem' };
+  const previewImageStyle: React.CSSProperties = { maxHeight: '80px', borderRadius: '8px' };
+  const removeImageButtonStyle: React.CSSProperties = { position: 'absolute', top: '-8px', right: '-8px', background: 'rgba(0,0,0,0.7)', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 };
 
   return (
     <div style={appContainerStyle}>
-      <div style={chatContainerStyle}>
-        <header style={headerStyle}>
-          <GramGptLogo />
-          <h1 style={titleStyle}>গ্রাম জিপিটি - আপনার গ্রামীামীণ বন্ধু</h1>
-          <button style={historyButtonStyle} aria-label="History"><HistoryIcon /></button>
-        </header>
+      <header style={headerStyle}>
+        <GramGptLogo />
+        <h1 style={titleStyle}>গ্রাম জিপিটি</h1>
+      </header>
 
-        <main ref={chatAreaRef} style={chatAreaStyle}>
-          {history.length === 0 && !loading && (
-            <div style={placeholderContainerStyle}>
-                <p style={placeholderTextStyle}>গ্রামের গল্প, আবহাওয়ার খবর জানতে চান, বা কোনো ছবি আঁকতে বলুন...</p>
+      <main style={mainContentStyle}>
+        {messages.length === 0 && !loading ? (
+          <div style={welcomeContainerStyle}>
+            <h2 style={welcomeTitleStyle}>গ্রাম জিপিটি-তে স্বাগতম!</h2>
+            <p style={welcomeSubtitleStyle}>আপনার যা জানতে ইচ্ছে করে, জিজ্ঞেস করুন। আমি আছি আপনার সাহায্যে।</p>
+            <div style={suggestionGridStyle}>
+              {suggestions.map((text, index) => (
+                <button key={index} style={suggestionButtonStyle} onClick={() => handleSuggestionClick(text)}>{text}</button>
+              ))}
             </div>
-          )}
-          {history.map((msg, index) => (
-            <div key={index} style={messageBubbleStyle(msg.role)}>
-              <div style={messageContentStyle(msg.role)}>
-                {msg.parts.map((part, partIndex) => (
-                  <div key={partIndex}>
-                    {part.text && <p style={{margin: 0}}>{part.text}</p>}
-                    {part.inlineData && <img src={`data:${part.inlineData.mimeType};base64,${part.inlineData.data}`} alt="Generated content" style={{ maxWidth: '100%', borderRadius: '8px', marginTop: '0.5rem' }} />}
-                  </div>
-                ))}
+          </div>
+        ) : (
+          <div style={chatContainerStyle}>
+            {messages.map((msg, index) => (
+              <div key={index} style={messageBubbleStyle(msg.role)}>
+                {msg.parts.map((part, partIndex) => {
+                  if (part.inlineData) {
+                    return (
+                      <div key={partIndex} style={{position: 'relative'}}>
+                        <img src={`data:${part.inlineData.mimeType};base64,${part.inlineData.data}`} alt="Generated content" style={imageInChatStyle} />
+                        {msg.role === 'model' && (
+                           <button onClick={() => handleDownload(part)} style={downloadButtonStyle} aria-label="Download Image">
+                           <DownloadIcon />
+                         </button>
+                        )}
+                      </div>
+                    );
+                  }
+                  return <p key={partIndex} style={{ margin: 0 }}>{part.text}</p>;
+                })}
               </div>
-              {msg.role === 'model' && (
-                <button onClick={() => handleDownload(msg.parts[0])} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', marginTop: '0.25rem' }} aria-label="Download">
-                    <DownloadIcon />
-                </button>
-              )}
-            </div>
-          ))}
-          {loading && <div style={{...messageBubbleStyle('model'), alignSelf: 'flex-start'}}><div style={messageContentStyle('model')}>লোড হচ্ছে...</div></div>}
-          {error && <div style={{...messageBubbleStyle('model'), alignSelf: 'flex-start'}}><div style={{...messageContentStyle('model'), backgroundColor: '#fee2e2', color: '#b91c1c'}}>{error}</div></div>}
-        </main>
+            ))}
+             <div ref={chatEndRef} />
+          </div>
+        )}
+        {loading && <div style={loadingIndicatorStyle}>ভাবছি...</div>}
+        {error && <div style={errorStyle}>{error}</div>}
+      </main>
 
-        <footer style={formStyle}>
-          <form onSubmit={handleSubmit}>
-            <div style={inputContainerStyle}>
-              <button type="button" onClick={() => fileInputRef.current?.click()} style={imageButtonStyle} aria-label="Add Image"><ImageIcon /></button>
-              <input type="file" ref={fileInputRef} onChange={handleImageChange} accept="image/*" style={{ display: 'none' }} />
-              <textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSubmit(e);
-                    }
-                }}
-                style={textareaStyle}
-                placeholder="এখানে আপনার প্রশ্ন লিখুন..."
-                rows={1}
-                disabled={loading}
-              />
-              <button type="submit" style={submitButtonStyle} disabled={loading || (!prompt && !selectedImage)} aria-label="Send Message"><SendIcon/></button>
-            </div>
-             {selectedImage && (
-                <div style={selectedImagePreviewStyle}>
-                  <span>{selectedImage.name}</span>
-                  <button onClick={() => { setSelectedImage(null); setImageBase64(null); }} style={removeImageButtonStyle}>&times;</button>
+      <footer style={footerStyle}>
+        <form id="chat-form" onSubmit={handleSubmit} style={formStyle}>
+          <div style={textareaContainerStyle}>
+             {attachedImage && (
+                <div style={imagePreviewStyle}>
+                    <img src={URL.createObjectURL(attachedImage)} alt="Preview" style={previewImageStyle} />
+                    <button type="button" onClick={() => { setAttachedImage(null); if(fileInputRef.current) fileInputRef.current.value = ''; }} style={removeImageButtonStyle}>
+                        <CloseIcon />
+                    </button>
                 </div>
-              )}
-          </form>
-        </footer>
-      </div>
+            )}
+            <textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(e);
+                }
+              }}
+              style={textareaStyle}
+              placeholder="এখানে আপনার প্রশ্ন লিখুন বা ছবি যোগ করুন..."
+              rows={1}
+              disabled={loading}
+            />
+            <button type="button" onClick={() => fileInputRef.current?.click()} style={attachButtonStyle} disabled={loading} aria-label="Attach image">
+              <PaperclipIcon />
+            </button>
+            <input type="file" ref={fileInputRef} onChange={handleImageChange} style={{ display: 'none' }} accept="image/*" />
+          </div>
+          <button type="submit" style={submitButtonStyle} disabled={loading || (!prompt && !attachedImage)} aria-label="Send message">
+            <SendIcon />
+          </button>
+        </form>
+      </footer>
     </div>
   );
 };
