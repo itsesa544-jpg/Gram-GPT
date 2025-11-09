@@ -1,5 +1,3 @@
-
-
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, GenerateContentResponse, Modality } from "@google/genai";
 import { GramGptLogo, DownloadIcon, SendIcon, PaperclipIcon, CloseIcon } from './components/IconComponents';
@@ -42,10 +40,20 @@ const App: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+  
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const scrollHeight = textarea.scrollHeight;
+      textarea.style.height = `${scrollHeight}px`;
+    }
+  }, [prompt]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -55,7 +63,7 @@ const App: React.FC = () => {
   };
 
   const handleAPISubmit = async (promptToSend: string, imageToSend: File | null) => {
-    if (!promptToSend && !imageToSend) return;
+    if (!promptToSend.trim() && !imageToSend) return;
 
     setLoading(true);
     setError(null);
@@ -65,8 +73,8 @@ const App: React.FC = () => {
       const imagePart = await fileToGenerativePart(imageToSend);
       userParts.push({ inlineData: imagePart });
     }
-    if (promptToSend) {
-      userParts.push({ text: promptToSend });
+    if (promptToSend.trim()) {
+      userParts.push({ text: promptToSend.trim() });
     }
 
     const newUserMessage: Message = { role: 'user', parts: userParts };
@@ -80,7 +88,6 @@ const App: React.FC = () => {
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         
-        // Keywords for image generation in Bengali: আঁকো (draw), ছবি (picture).
         const isImageGenerationRequest = /আঁকো|ছবি/.test(promptToSend);
         
         let model: string;
@@ -147,77 +154,36 @@ const App: React.FC = () => {
     a.click();
     document.body.removeChild(a);
   };
-  
-  // --- Styles ---
-  const appContainerStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#f8fafc' };
-  const headerStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', padding: '1rem', borderBottom: '1px solid #e5e7eb', backgroundColor: 'white', flexShrink: 0 };
-  const titleStyle: React.CSSProperties = { marginLeft: '0.75rem', fontSize: '1.25rem', fontWeight: 600, color: '#1e293b' };
-  const mainContentStyle: React.CSSProperties = { flexGrow: 1, overflowY: 'auto', padding: '1.5rem' };
-  
-  const welcomeContainerStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100%', textAlign: 'center' };
-  const welcomeTitleStyle: React.CSSProperties = { color: '#1e293b', fontWeight: 700, fontSize: '2rem', marginBottom: '0.5rem' };
-  const welcomeSubtitleStyle: React.CSSProperties = { color: '#475569', maxWidth: '450px', marginBottom: '2.5rem', lineHeight: '1.6' };
-  const suggestionGridStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '1rem', width: '100%', maxWidth: '600px' };
-  const suggestionButtonStyle: React.CSSProperties = { padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '12px', backgroundColor: 'white', cursor: 'pointer', textAlign: 'left', color: '#334155', fontWeight: 500, transition: 'background-color 0.2s, box-shadow 0.2s', fontSize: '0.9rem', lineHeight: '1.4' };
-  
-  const chatContainerStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: '1rem' };
-  const messageBubbleStyle = (role: 'user' | 'model'): React.CSSProperties => ({
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '0.5rem',
-    maxWidth: '80%',
-    padding: '0.75rem 1rem',
-    borderRadius: '1.25rem',
-    alignSelf: role === 'user' ? 'flex-end' : 'flex-start',
-    backgroundColor: role === 'user' ? '#22c55e' : '#e2e8f0',
-    color: role === 'user' ? 'white' : '#1e293b',
-  });
-  const imageInChatStyle: React.CSSProperties = { maxWidth: '100%', height: 'auto', borderRadius: '1rem', marginTop: '0.5rem', position: 'relative' };
-  const downloadButtonStyle: React.CSSProperties = { position: 'absolute', top: '0.5rem', right: '0.5rem', background: 'rgba(0, 0, 0, 0.6)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' };
-  
-  const loadingIndicatorStyle: React.CSSProperties = { textAlign: 'center', color: '#475569', fontSize: '0.875rem' };
-  const errorStyle: React.CSSProperties = { padding: '0.75rem', backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: '8px', textAlign: 'center' };
-  
-  const footerStyle: React.CSSProperties = { padding: '1rem 1.5rem', borderTop: '1px solid #e5e7eb', backgroundColor: 'rgba(255, 255, 255, 0.8)', backdropFilter: 'blur(8px)', flexShrink: 0 };
-  const formStyle: React.CSSProperties = { display: 'flex', gap: '0.75rem', maxWidth: '800px', margin: '0 auto', alignItems: 'center' };
-  const textareaContainerStyle: React.CSSProperties = { flexGrow: 1, position: 'relative' };
-  const textareaStyle: React.CSSProperties = { width: '100%', padding: '0.75rem 2.5rem 0.75rem 1rem', border: '1px solid #cbd5e1', borderRadius: '24px', resize: 'none', fontFamily: 'inherit', fontSize: '1rem', minHeight: '48px', boxSizing: 'border-box' };
-  const attachButtonStyle: React.CSSProperties = { position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'transparent', border: 'none', cursor: 'pointer', color: '#64748b' };
-  const submitButtonStyle: React.CSSProperties = { height: '48px', width: '48px', border: 'none', borderRadius: '50%', backgroundColor: '#22c55e', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 };
-  
-  const imagePreviewStyle: React.CSSProperties = { position: 'relative', display: 'inline-block', marginBottom: '0.5rem' };
-  const previewImageStyle: React.CSSProperties = { maxHeight: '80px', borderRadius: '8px' };
-  const removeImageButtonStyle: React.CSSProperties = { position: 'absolute', top: '-8px', right: '-8px', background: 'rgba(0,0,0,0.7)', color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 };
 
   return (
-    <div style={appContainerStyle}>
-      <header style={headerStyle}>
+    <div className="app-container">
+      <header className="header">
         <GramGptLogo />
-        <h1 style={titleStyle}>গ্রামজিপিটি</h1>
+        <h1 className="header-title">গ্রামজিপিটি</h1>
       </header>
 
-      <main style={mainContentStyle}>
+      <main className="main-content">
         {messages.length === 0 && !loading ? (
-          <div style={welcomeContainerStyle}>
-            <h2 style={welcomeTitleStyle}>গ্রামজিপিটি</h2>
-            <p style={welcomeSubtitleStyle}>আপনার গ্রামীণ বন্ধু।</p>
-            <div style={suggestionGridStyle}>
+          <div className="welcome-container">
+            <h2 className="welcome-title">গ্রামজিপিটি</h2>
+            <p className="welcome-subtitle">আপনার গ্রামীণ বন্ধু।</p>
+            <div className="suggestion-grid">
               {suggestions.map((text, index) => (
-                <button key={index} style={suggestionButtonStyle} onClick={() => handleSuggestionClick(text)}>{text}</button>
+                <button key={index} className="suggestion-button" onClick={() => handleSuggestionClick(text)}>{text}</button>
               ))}
             </div>
           </div>
         ) : (
-          <div style={chatContainerStyle}>
+          <div className="chat-container">
             {messages.map((msg, index) => (
-              <div key={index} style={messageBubbleStyle(msg.role)}>
+              <div key={index} className={`message-bubble ${msg.role}`}>
                 {msg.parts.map((part, partIndex) => {
                   if (part.inlineData) {
                     return (
-                      <div key={partIndex} style={{position: 'relative'}}>
-                        <img src={`data:${part.inlineData.mimeType};base64,${part.inlineData.data}`} alt="Generated content" style={imageInChatStyle} />
+                      <div key={partIndex} className="message-part-image-container">
+                        <img src={`data:${part.inlineData.mimeType};base64,${part.inlineData.data}`} alt="Generated content" className="message-part-image" />
                         {msg.role === 'model' && (
-                           <button onClick={() => handleDownload(part)} style={downloadButtonStyle} aria-label="Download Image">
+                           <button onClick={() => handleDownload(part)} className="download-button" aria-label="Download Image">
                            <DownloadIcon />
                          </button>
                         )}
@@ -231,41 +197,42 @@ const App: React.FC = () => {
              <div ref={chatEndRef} />
           </div>
         )}
-        {loading && <div style={loadingIndicatorStyle}>ভাবছি...</div>}
-        {error && <div style={errorStyle}>{error}</div>}
+        {loading && <div className="loading-indicator">ভাবছি...</div>}
+        {error && <div className="error-message">{error}</div>}
       </main>
 
-      <footer style={footerStyle}>
-        <form id="chat-form" onSubmit={handleSubmit} style={formStyle}>
-          <div style={textareaContainerStyle}>
+      <footer className="footer">
+        <form id="chat-form" onSubmit={handleSubmit} className="chat-form">
+          <div className="textarea-container">
              {attachedImage && (
-                <div style={imagePreviewStyle}>
-                    <img src={URL.createObjectURL(attachedImage)} alt="Preview" style={previewImageStyle} />
-                    <button type="button" onClick={() => { setAttachedImage(null); if(fileInputRef.current) fileInputRef.current.value = ''; }} style={removeImageButtonStyle}>
+                <div className="image-preview-container">
+                    <img src={URL.createObjectURL(attachedImage)} alt="Preview" className="image-preview" />
+                    <button type="button" onClick={() => { setAttachedImage(null); if(fileInputRef.current) fileInputRef.current.value = ''; }} className="remove-image-button">
                         <CloseIcon />
                     </button>
                 </div>
             )}
             <textarea
+              ref={textareaRef}
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  handleAPISubmit(prompt, attachedImage);
+                  handleSubmit(e);
                 }
               }}
-              style={textareaStyle}
+              className="chat-textarea"
               placeholder="এখানে আপনার প্রশ্ন লিখুন বা ছবি যোগ করুন..."
               rows={1}
               disabled={loading}
             />
-            <button type="button" onClick={() => fileInputRef.current?.click()} style={attachButtonStyle} disabled={loading} aria-label="Attach image">
+            <button type="button" onClick={() => fileInputRef.current?.click()} className="attach-button" disabled={loading} aria-label="Attach image">
               <PaperclipIcon />
             </button>
             <input type="file" ref={fileInputRef} onChange={handleImageChange} style={{ display: 'none' }} accept="image/*" />
           </div>
-          <button type="submit" style={submitButtonStyle} disabled={loading || (!prompt && !attachedImage)} aria-label="Send message">
+          <button type="submit" className="submit-button" disabled={loading || (!prompt.trim() && !attachedImage)} aria-label="Send message">
             <SendIcon />
           </button>
         </form>
