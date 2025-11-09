@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, GenerateContentResponse, Modality } from "@google/genai";
 import { GramGptLogo, DownloadIcon, SendIcon, PaperclipIcon, CloseIcon } from './components/IconComponents';
@@ -46,14 +47,6 @@ const App: React.FC = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
 
-  const handleSuggestionClick = (suggestionText: string) => {
-    setPrompt(suggestionText);
-    // Use a timeout to ensure the state update is processed before submitting
-    setTimeout(() => {
-      (document.getElementById('chat-form') as HTMLFormElement)?.requestSubmit();
-    }, 0);
-  };
-  
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -61,27 +54,25 @@ const App: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prompt && !attachedImage) return;
+  const handleAPISubmit = async (promptToSend: string, imageToSend: File | null) => {
+    if (!promptToSend && !imageToSend) return;
 
     setLoading(true);
     setError(null);
 
     const userParts: MessagePart[] = [];
-    if (attachedImage) {
-      const imagePart = await fileToGenerativePart(attachedImage);
+    if (imageToSend) {
+      const imagePart = await fileToGenerativePart(imageToSend);
       userParts.push({ inlineData: imagePart });
     }
-    if (prompt) {
-      userParts.push({ text: prompt });
+    if (promptToSend) {
+      userParts.push({ text: promptToSend });
     }
 
     const newUserMessage: Message = { role: 'user', parts: userParts };
     setMessages(prev => [...prev, newUserMessage]);
 
     // Clear inputs after capturing their values
-    const currentPrompt = prompt;
     setPrompt('');
     setAttachedImage(null);
     if(fileInputRef.current) fileInputRef.current.value = '';
@@ -90,7 +81,7 @@ const App: React.FC = () => {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         
         // Keywords for image generation in Bengali: আঁকো (draw), ছবি (picture).
-        const isImageGenerationRequest = /আঁকো|ছবি/.test(currentPrompt);
+        const isImageGenerationRequest = /আঁকো|ছবি/.test(promptToSend);
         
         let model: string;
         const config: any = {};
@@ -136,6 +127,15 @@ const App: React.FC = () => {
     }
   };
   
+  const handleSuggestionClick = (suggestionText: string) => {
+    handleAPISubmit(suggestionText, null);
+  };
+  
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    handleAPISubmit(prompt, attachedImage);
+  };
+
   const handleDownload = (part: MessagePart) => {
     if(!part.inlineData) return;
     const { data, mimeType } = part.inlineData;
@@ -252,7 +252,7 @@ const App: React.FC = () => {
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
-                  handleSubmit(e);
+                  handleAPISubmit(prompt, attachedImage);
                 }
               }}
               style={textareaStyle}
