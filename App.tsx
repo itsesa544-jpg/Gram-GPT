@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, GenerateContentResponse, Modality } from "@google/genai";
 import { GramGptLogo, DownloadIcon, SendIcon, PaperclipIcon, CloseIcon } from './components/IconComponents';
@@ -54,19 +55,6 @@ const App: React.FC = () => {
       textarea.style.height = `${scrollHeight}px`;
     }
   }, [prompt]);
-
-  // This effect handles scrolling when the virtual keyboard appears on mobile
-  useEffect(() => {
-    const handleResize = () => {
-      // A brief timeout can help ensure the layout has settled before scrolling
-      setTimeout(() => {
-        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
