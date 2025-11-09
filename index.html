@@ -139,6 +139,23 @@
         color: var(--text-primary);
         border-radius: 18px 18px 18px 0;
       }
+      .message-bubble.model p {
+        margin: 0 0 0.5rem 0;
+      }
+      .message-bubble.model p:last-child {
+        margin-bottom: 0;
+      }
+      .message-bubble.model ul, .message-bubble.model ol {
+        padding-left: 20px;
+        margin: 0.5rem 0;
+      }
+      .message-bubble.model li {
+        margin-bottom: 0.25rem;
+      }
+      .message-bubble.model a {
+        color: var(--brand-color);
+        text-decoration: underline;
+      }
       .message-part-image-container {
         position: relative;
       }
@@ -311,7 +328,8 @@
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
     "react": "https://aistudiocdn.com/react@^19.2.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^0.15.0"
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^0.15.0",
+    "marked": "https://aistudiocdn.com/marked@^13.0.0"
   }
 }
 </script>

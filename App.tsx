@@ -1,6 +1,6 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { GoogleGenAI, GenerateContentResponse, Modality } from "@google/genai";
+import { marked } from 'marked';
 import { GramGptLogo, DownloadIcon, SendIcon, PaperclipIcon, CloseIcon } from './components/IconComponents';
 
 // --- Types ---
@@ -23,6 +23,14 @@ const fileToGenerativePart = async (file: File): Promise<InlineData> => {
     mimeType: file.type,
   };
 };
+
+// --- Components ---
+const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
+  // Configure marked to handle line breaks properly
+  const rawMarkup = marked(content, { gfm: true, breaks: true });
+  return <div dangerouslySetInnerHTML={{ __html: rawMarkup as string }} />;
+};
+
 
 // --- Constants ---
 const suggestions = [
@@ -55,6 +63,27 @@ const App: React.FC = () => {
       textarea.style.height = `${scrollHeight}px`;
     }
   }, [prompt]);
+
+  // This effect handles scrolling when the virtual keyboard appears on mobile
+  useEffect(() => {
+    const visualViewport = window.visualViewport;
+    if (!visualViewport) {
+      return;
+    }
+
+    const handleResize = () => {
+      // A brief timeout can help ensure the layout has settled before scrolling
+      setTimeout(() => {
+        chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    };
+
+    visualViewport.addEventListener('resize', handleResize);
+
+    return () => {
+      visualViewport.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -132,8 +161,31 @@ const App: React.FC = () => {
         }
 
         if (response.candidates && response.candidates.length > 0 && response.candidates[0].content?.parts?.length > 0) {
-            const newModelMessage: Message = { role: 'model', parts: response.candidates[0].content.parts };
-            setMessages(prev => [...prev, newModelMessage]);
+            // FIX: Map the response parts to the local MessagePart type to fix type incompatibility.
+            // The 'Part' type from the SDK has an optional 'data' in 'inlineData', which is not compatible
+            // with the local 'MessagePart' type that requires 'data' for rendering.
+            // This also filters out any parts that are not text or image data.
+            const modelParts = response.candidates[0].content.parts.map((part): MessagePart | null => {
+              if (part.text) {
+                return { text: part.text };
+              }
+              if (part.inlineData && part.inlineData.data) {
+                return {
+                  inlineData: {
+                    data: part.inlineData.data,
+                    mimeType: part.inlineData.mimeType,
+                  },
+                };
+              }
+              return null;
+            }).filter((part): part is MessagePart => part !== null);
+
+            if (modelParts.length > 0) {
+              const newModelMessage: Message = { role: 'model', parts: modelParts };
+              setMessages(prev => [...prev, newModelMessage]);
+            } else {
+              throw new Error("মডেল থেকে কোনো উত্তর পাওয়া যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।");
+            }
         } else {
             throw new Error("মডেল থেকে কোনো উত্তর পাওয়া যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।");
         }
@@ -209,7 +261,13 @@ const App: React.FC = () => {
                       </div>
                     );
                   }
-                  return <p key={partIndex} style={{ margin: 0 }}>{part.text}</p>;
+                  if (part.text) {
+                     if (msg.role === 'model') {
+                        return <MarkdownRenderer key={partIndex} content={part.text} />;
+                     }
+                     return <p key={partIndex} style={{ margin: 0 }}>{part.text}</p>;
+                  }
+                  return null;
                 })}
               </div>
             ))}
