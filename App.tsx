@@ -68,6 +68,12 @@ const App: React.FC = () => {
     setLoading(true);
     setError(null);
 
+    if (!process.env.API_KEY) {
+      setError('API কী সেট করা নেই। অনুগ্রহ করে আপনার পরিবেশের চলক (environment variable) কনফিগার করুন।');
+      setLoading(false);
+      return;
+    }
+
     const userParts: MessagePart[] = [];
     if (imageToSend) {
       const imagePart = await fileToGenerativePart(imageToSend);
@@ -92,7 +98,6 @@ const App: React.FC = () => {
         
         let model: string;
         const config: any = {};
-        let contents: any;
         
         const mappedParts = userParts.map(part => {
             if (part.inlineData) {
@@ -101,14 +106,14 @@ const App: React.FC = () => {
             return { text: part.text || '' };
         });
 
+        const contents = { parts: mappedParts };
+
         if (isImageGenerationRequest) {
             model = 'gemini-2.5-flash-image';
             config.responseModalities = [Modality.IMAGE];
-            contents = { parts: mappedParts };
         } else {
             model = 'gemini-2.5-flash';
             config.systemInstruction = 'তুমি গ্রাম জিপিটি, গ্রামের মানুষের একজন বন্ধু ও সহায়ক। তোমার কাজ হলো কৃষি, আবহাওয়া, গ্রামের গল্প, গান এবং দৈনন্দিন জীবনের নানা বিষয়ে সহজ ভাষায় তথ্য ও পরামর্শ দেওয়া। প্রয়োজনে ছবি তৈরি করে বা বিশ্লেষণ করে সাহায্য করা।';
-            contents = { parts: mappedParts };
         }
 
         const response: GenerateContentResponse = await ai.models.generateContent({
@@ -117,18 +122,31 @@ const App: React.FC = () => {
             config: config,
         });
 
-        if (response.candidates && response.candidates.length > 0 && response.candidates[0].content.parts.length > 0) {
+        if (response.promptFeedback?.blockReason) {
+            let reason = 'আপনার অনুরোধটি প্রক্রিয়া করা যায়নি।';
+            if (response.promptFeedback.blockReason === 'SAFETY') {
+                reason = 'নিরাপত্তার কারণে আপনার অনুরোধটি ব্লক করা হয়েছে।';
+            }
+            throw new Error(reason);
+        }
+
+        if (response.candidates && response.candidates.length > 0 && response.candidates[0].content?.parts?.length > 0) {
             const newModelMessage: Message = { role: 'model', parts: response.candidates[0].content.parts };
             setMessages(prev => [...prev, newModelMessage]);
-        } else if (response.text) {
-            const newModelMessage: Message = { role: 'model', parts: [{ text: response.text }] };
-            setMessages(prev => [...prev, newModelMessage]);
         } else {
-            throw new Error("কোনো উত্তর পাওয়া যায়নি।");
+            throw new Error("মডেল থেকে কোনো উত্তর পাওয়া যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন।");
         }
     } catch (err) {
       console.error(err);
-      setError('দুঃখিত, একটি সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+      let userFriendlyError = 'দুঃখিত, একটি সমস্যা হয়েছে। আবার চেষ্টা করুন।';
+      if (err instanceof Error) {
+        if (err.message.includes('API key not valid')) {
+            userFriendlyError = 'আপনার API কী টি সঠিক নয়। অনুগ্রহ করে সঠিক কী প্রদান করুন।';
+        } else if (err.message.includes('block') || err.message.includes('কোনো উত্তর পাওয়া যায়নি') || err.message.includes('প্রক্রিয়া করা যায়নি')) {
+            userFriendlyError = err.message;
+        }
+      }
+      setError(userFriendlyError);
     } finally {
       setLoading(false);
     }
